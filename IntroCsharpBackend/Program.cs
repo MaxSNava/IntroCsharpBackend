@@ -1,76 +1,95 @@
-﻿using System;
+﻿/// <summary>
+/// Punto de entrada principal del programa.
+/// </summary>
+var sale = new SaleWithTax(15, 5);
+var message = sale.GetInfo();
+var taxMessage = sale.GetInfoWithTax();
 
-var venta = new VentaOnline(100, "https://mitienda.com/orden/123");
-Console.WriteLine(venta.ObtenerDetalle());
+Console.WriteLine(message);
+Console.WriteLine(taxMessage);
 
 /// <summary>
-/// Clase base que representa una venta general.
+/// Representa una venta genérica.
 /// </summary>
-public class Venta
+class Sale
 {
     /// <summary>
-    /// Total de la venta. Puede ser accedido desde cualquier parte del programa.
+    /// Total de la venta.
     /// </summary>
     public decimal Total { get; set; }
 
     /// <summary>
-    /// Código interno de control. Solo puede usarse dentro de la misma clase.
-    /// </summary>
-    private string _codigoInterno = Guid.NewGuid().ToString();
-
-    /// <summary>
-    /// Fecha de creación de la venta. Accesible por clases derivadas.
-    /// </summary>
-    protected DateTime FechaCreacion { get; set; }
-
-    /// <summary>
-    /// Constructor que inicializa una venta con un total específico.
+    /// Inicializa una nueva instancia de la clase Sale.
     /// </summary>
     /// <param name="total">Total de la venta</param>
-    public Venta(decimal total)
+    /// <exception cref="ArgumentException">Lanzada si el total es negativo</exception>
+    public Sale(decimal total)
     {
         if (total < 0)
             throw new ArgumentException("El total no puede ser negativo.", nameof(total));
 
         Total = total;
-        FechaCreacion = DateTime.Now;
     }
 
     /// <summary>
-    /// Devuelve una descripción general de la venta.
+    /// Obtiene información básica de la venta.
     /// </summary>
-    public virtual string ObtenerDetalle()
+    /// <returns>Texto con el total de la venta</returns>
+    public virtual string GetInfo()
     {
-        return $"Total: {Total:C}, Fecha: {FechaCreacion}";
+        return $"Total sale: {Total:C}";
+    }
+
+    /// <summary>
+    /// Sobrecarga que incluye un descuento.
+    /// </summary>
+    /// <param name="discount">Valor del descuento</param>
+    /// <returns>Texto con el total y el descuento aplicado</returns>
+    public string GetInfo(decimal discount)
+    {
+        return $"Total sale: {Total:C} with discount: {discount:C}";
     }
 }
 
 /// <summary>
-/// Representa una venta hecha en línea, hereda de Venta. Herencia
+/// Representa una venta con impuesto, que hereda de Sale.
 /// </summary>
-public class VentaOnline : Venta
+class SaleWithTax : Sale
 {
     /// <summary>
-    /// URL de seguimiento del pedido. Accesible desde cualquier parte.
+    /// Impuesto aplicado a la venta.
     /// </summary>
-    public string UrlSeguimiento { get; set; }
+    public decimal Tax { get; set; }
 
     /// <summary>
-    /// Constructor que inicializa una venta en línea.
+    /// Inicializa una nueva instancia de la clase SaleWithTax.
     /// </summary>
     /// <param name="total">Total de la venta</param>
-    /// <param name="urlSeguimiento">URL para seguimiento</param>
-    public VentaOnline(decimal total, string urlSeguimiento)
-        : base(total)
+    /// <param name="tax">Impuesto aplicado</param>
+    /// <exception cref="ArgumentException">Lanzada si el impuesto es negativo</exception>
+    public SaleWithTax(decimal total, decimal tax) : base(total)
     {
-        UrlSeguimiento = urlSeguimiento;
+        if (tax < 0)
+            throw new ArgumentException("El impuesto no puede ser negativo.", nameof(tax));
+
+        Tax = tax;
     }
 
     /// <summary>
-    /// Sobrescribe el método base para incluir la URL.
+    /// Método adicional que muestra el total con impuesto.
     /// </summary>
-    public override string ObtenerDetalle()
+    /// <returns>Texto con el total e impuesto</returns>
+    public string GetInfoWithTax()
     {
-        return base.ObtenerDetalle() + $", Seguimiento: {UrlSeguimiento}";
+        return $"El total de la venta es: {Total:C} y el impuesto es: {Tax:C}";
+    }
+
+    /// <summary>
+    /// Sobrescribe el método base para incluir el impuesto.
+    /// </summary>
+    /// <returns>Texto con total e impuesto</returns>
+    public override string GetInfo()
+    {
+        return $"Total sale: {Total:C} with tax: {Tax:C}";
     }
 }
