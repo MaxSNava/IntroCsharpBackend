@@ -1,95 +1,202 @@
-﻿/// <summary>
-/// Punto de entrada principal del programa.
-/// </summary>
-var sale = new SaleWithTax(15, 5);
-var message = sale.GetInfo();
-var taxMessage = sale.GetInfoWithTax();
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 
-Console.WriteLine(message);
-Console.WriteLine(taxMessage);
-
-/// <summary>
-/// Representa una venta genérica.
-/// </summary>
-class Sale
+class Program
 {
-    /// <summary>
-    /// Total de la venta.
-    /// </summary>
-    public decimal Total { get; set; }
+    static List<IVenta> ventas = new List<IVenta>();
 
-    /// <summary>
-    /// Inicializa una nueva instancia de la clase Sale.
-    /// </summary>
-    /// <param name="total">Total de la venta</param>
-    /// <exception cref="ArgumentException">Lanzada si el total es negativo</exception>
-    public Sale(decimal total)
+    static void Main()
     {
-        if (total < 0)
-            throw new ArgumentException("El total no puede ser negativo.", nameof(total));
+        bool salir = false;
 
-        Total = total;
+        while (!salir)
+        {
+            Console.Clear();
+            Console.WriteLine("=== Sistema de Ventas ===");
+            Console.WriteLine("1. Registrar venta simple");
+            Console.WriteLine("2. Registrar venta con impuesto");
+            Console.WriteLine("3. Mostrar ventas");
+            Console.WriteLine("4. Guardar ventas en archivo (JSON)");
+            Console.WriteLine("5. Consultar ventas con LINQ");
+            Console.WriteLine("6. Probar Generics personalizados");
+            Console.WriteLine("7. Probar funciones lambda y funcionales");
+            Console.WriteLine("8. Salir");
+            Console.Write("Seleccione una opción: ");
+            var opcion = Console.ReadLine();
+
+            switch (opcion)
+            {
+                case "1": RegistrarVentaSimple(); break;
+                case "2": RegistrarVentaConImpuesto(); break;
+                case "3": MostrarVentas(); break;
+                case "4": GuardarVentasEnArchivo(); break;
+                case "5": ConsultarVentasConLINQ(); break;
+                case "6": ProbarGenerics(); break;
+                case "7": ProbarFunciones(); break;
+                case "8": salir = true; break;
+                default:
+                    Console.WriteLine("Opción inválida. Presione una tecla para continuar...");
+                    Console.ReadKey();
+                    break;
+            }
+        }
     }
 
-    /// <summary>
-    /// Obtiene información básica de la venta.
-    /// </summary>
-    /// <returns>Texto con el total de la venta</returns>
-    public virtual string GetInfo()
+    static void RegistrarVentaSimple()
     {
-        return $"Total sale: {Total:C}";
+        try
+        {
+            Console.Write("Ingrese el total de la venta: ");
+            decimal total = decimal.Parse(Console.ReadLine() ?? "0");
+            var venta = new Sale(total);
+            ventas.Add(venta);
+            Console.WriteLine("Venta registrada con éxito.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        Console.ReadKey();
     }
 
-    /// <summary>
-    /// Sobrecarga que incluye un descuento.
-    /// </summary>
-    /// <param name="discount">Valor del descuento</param>
-    /// <returns>Texto con el total y el descuento aplicado</returns>
-    public string GetInfo(decimal discount)
+    static void RegistrarVentaConImpuesto()
     {
-        return $"Total sale: {Total:C} with discount: {discount:C}";
+        try
+        {
+            Console.Write("Ingrese el total de la venta: ");
+            decimal total = decimal.Parse(Console.ReadLine() ?? "0");
+            Console.Write("Ingrese el impuesto: ");
+            decimal tax = decimal.Parse(Console.ReadLine() ?? "0");
+            var venta = new SaleWithTax(total, tax);
+            ventas.Add(venta);
+            Console.WriteLine("Venta con impuesto registrada con éxito.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        Console.ReadKey();
+    }
+
+    static void MostrarVentas()
+    {
+        if (ventas.Count == 0)
+            Console.WriteLine("No hay ventas registradas.");
+        else
+            ventas.ForEach(v => Console.WriteLine(v.GetInfo()));
+
+        Console.ReadKey();
+    }
+
+    static void GuardarVentasEnArchivo()
+    {
+        var opciones = new JsonSerializerOptions { WriteIndented = true };
+        string json = JsonSerializer.Serialize(ventas, opciones);
+        File.WriteAllText("ventas.json", json);
+        Console.WriteLine("Ventas guardadas en ventas.json.");
+        Console.ReadKey();
+    }
+
+    static void ConsultarVentasConLINQ()
+    {
+        var mayoresImpuestos = ventas.OfType<SaleWithTax>()
+            .Where(v => v.Tax > 0)
+            .OrderByDescending(v => v.Tax);
+
+        foreach (var venta in mayoresImpuestos)
+        {
+            Console.WriteLine(venta.GetInfo());
+        }
+        Console.ReadKey();
+    }
+
+    static void ProbarGenerics()
+    {
+        var lista = new MyList<string>(3);
+        lista.Add("Uno");
+        lista.Add("Dos");
+        lista.Add("Tres");
+        lista.Add("Cuatro");
+        Console.WriteLine(lista.GetContent());
+        Console.ReadKey();
+    }
+
+    static void ProbarFunciones()
+    {
+        Func<decimal, decimal, decimal> calcularTotalConIVA = (total, iva) => total + (total * iva);
+        decimal resultado = calcularTotalConIVA(100, 0.16m);
+        Console.WriteLine($"Total con IVA: {resultado:C}");
+
+        Action<string> log = msg => Console.WriteLine($"[LOG] {msg}");
+        log("Mensaje funcional ejecutado correctamente");
+
+        Predicate<IVenta> filtro = venta => venta.Total > 100;
+        var filtradas = ventas.FindAll(filtro);
+        Console.WriteLine("Ventas con total > 100:");
+        filtradas.ForEach(v => Console.WriteLine(v.GetInfo()));
+
+        Console.ReadKey();
     }
 }
 
-/// <summary>
-/// Representa una venta con impuesto, que hereda de Sale.
-/// </summary>
+interface IVenta
+{
+    decimal Total { get; set; }
+    string GetInfo();
+}
+
+class Sale : IVenta
+{
+    public decimal Total { get; set; }
+    public Sale(decimal total)
+    {
+        if (total < 0) throw new ArgumentException("El total no puede ser negativo.");
+        Total = total;
+    }
+    public virtual string GetInfo() => $"Venta simple: Total = {Total:C}";
+}
+
 class SaleWithTax : Sale
 {
-    /// <summary>
-    /// Impuesto aplicado a la venta.
-    /// </summary>
     public decimal Tax { get; set; }
-
-    /// <summary>
-    /// Inicializa una nueva instancia de la clase SaleWithTax.
-    /// </summary>
-    /// <param name="total">Total de la venta</param>
-    /// <param name="tax">Impuesto aplicado</param>
-    /// <exception cref="ArgumentException">Lanzada si el impuesto es negativo</exception>
     public SaleWithTax(decimal total, decimal tax) : base(total)
     {
-        if (tax < 0)
-            throw new ArgumentException("El impuesto no puede ser negativo.", nameof(tax));
-
+        if (tax < 0) throw new ArgumentException("El impuesto no puede ser negativo.");
         Tax = tax;
     }
+    public override string GetInfo() => $"Venta con impuesto: Total = {Total:C}, Impuesto = {Tax:C}";
+    public string GetInfoWithTax() => $"Total + Impuesto: {Total + Tax:C}";
+}
 
-    /// <summary>
-    /// Método adicional que muestra el total con impuesto.
-    /// </summary>
-    /// <returns>Texto con el total e impuesto</returns>
-    public string GetInfoWithTax()
+public class MyList<T>
+{
+    private List<T> _list;
+    private int _limit;
+
+    public MyList(int limit)
     {
-        return $"El total de la venta es: {Total:C} y el impuesto es: {Tax:C}";
+        _limit = limit;
+        _list = new List<T>();
     }
 
-    /// <summary>
-    /// Sobrescribe el método base para incluir el impuesto.
-    /// </summary>
-    /// <returns>Texto con total e impuesto</returns>
-    public override string GetInfo()
+    public void Add(T element)
     {
-        return $"Total sale: {Total:C} with tax: {Tax:C}";
+        if (_list.Count < _limit)
+        {
+            _list.Add(element);
+        }
+    }
+
+    public string GetContent()
+    {
+        string content = string.Empty;
+        foreach (var element in _list)
+        {
+            content += element.ToString() + "\n";
+        }
+        return content;
     }
 }
